@@ -32,7 +32,7 @@ export default {
       })
     },
     getSample() {
-      this.areaVal1 = '{ "name":"hello", "age":20 }'
+      this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key" }'
       this.areaVal2 = '{ "name":"world", "age":20 }'
     },
     diffJson() {
@@ -46,7 +46,9 @@ export default {
           diffJson[key] = {'description': 'nk'}
         else {
           if (value == rightJson[key]) {
-            if (value !== leftJson[key]) diffJson[key] = {'description': 'dt'}
+            if (value !== rightJson[key]){
+              diffJson[key] = {'description': 'dt'}
+            }
           } else diffJson[key] = {'description': 'dv'}
 
           delete rightJson[key];
