@@ -25,7 +25,7 @@ export default {
     compare() {
       const leftJson = JSON.parse(this.areaVal1)
       const rightJson = JSON.parse(this.areaVal2)
-      const diffJson = this.makeDiffJson() //make
+      const diffJson = this.makeDiffJson()
       /*
         데이터 베이스에 create할 것 : leftJson.stringify, rightJson.stringify, diffJson.stringify
       */
@@ -42,13 +42,13 @@ export default {
           id, leftJsonStr, rightJsonStr, diffJsonStr
         })
       })
+
       // routing 과정
       this.$router.push({
         name: 'after',
         params: {
-          leftJson,
-          rightJson,
-          diffJson,
+          'leftJson' : this.makeJsonSplitByEnterArr(leftJson),
+          'rightJson' : this.makeJsonSplitByEnterArr(rightJson)
         },
         props:{
           'idx': id
@@ -59,7 +59,7 @@ export default {
       this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key", "isGood" : 1}'
       this.areaVal2 = '{ "name":"world", "age":20, "isGood" : 1}'
     },
-    idMake() {
+    idMake() { // 변경될 사항
       const today = new Date();
       const year = today.getFullYear().toString().substring(2)
       const month = this.addZero(today.getMonth()+1)
@@ -99,6 +99,38 @@ export default {
       }
 
       return diffJson;
+    },
+    makeJsonSplitByEnterArr(json){
+      const jsonStr = JSON.stringify(json, null, 2);
+      const diffJson = this.makeDiffJson();
+      const resultList = [];
+
+      const tmpArr = jsonStr.split('\n');
+      for (let str of tmpArr) {
+        str = str.trim();
+        if (str.startsWith('\"')) {
+          const key = str.match('"\\w*"')[0].replaceAll('"', '')
+          // 문제가 있는 경우
+          if(diffJson.hasOwnProperty(key)){
+            const reason = diffJson[key]
+            resultList.push({
+              "str" : str,
+              "err" : reason
+            })
+            continue;
+          }
+          resultList.push({
+            "str": str,
+            "err": null
+          });
+        } else {
+          resultList.push({
+            'str': str,
+            "err": null
+          })
+        }
+      }
+      return resultList;
     }
   }
 }

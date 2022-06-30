@@ -1,7 +1,7 @@
 <template>
   <div id="after">
     <div>
-      <div v-bind:class="item.err" class="result" v-for="item in this.makeJsonSplitByEnterArr(this.$route.params.leftJson)">
+      <div v-bind:class="item.err" class="result" v-for="item in this.$route.params.leftJson">
         {{ item.str.startsWith('\"') ? "&nbsp &nbsp" + item.str : item.str }}
       </div>
     </div>
@@ -9,7 +9,7 @@
       <button @click="goBack">before 페이지로 이동</button>
     </div>
     <div>
-      <div v-bind:class="item.err" class="result" v-for="item in this.makeJsonSplitByEnterArr(this.$route.params.rightJson)">
+      <div v-bind:class="item.err" class="result" v-for="item in this.$route.params.rightJson">
         {{ item.str.startsWith('\"') ? "&nbsp &nbsp" + item.str : item.str }}
       </div>
     </div>
@@ -24,39 +24,7 @@ export default {
   methods: {
     goBack() {
       this.$router.push('/');
-    },
-    makeJsonSplitByEnterArr(json){
-      const leftJsonStr = JSON.stringify(json, null, 2);
-      const diffJson = this.$route.params.diffJson;
-      const resultList = [];
-
-      const tmpArr = leftJsonStr.split('\n');
-      for (let str of tmpArr) {
-        str = str.trim();
-        if (str.startsWith('\"')) {
-          const key = str.match('"\\w*"')[0].replaceAll('"', '')
-          // 문제가 있는 경우
-          if(diffJson.hasOwnProperty(key)){
-            const reason = diffJson[key]
-            resultList.push({
-              "str" : str,
-              "err" : reason
-            })
-            continue;
-          }
-          resultList.push({
-            "str": str,
-            "err": null
-          });
-        } else {
-          resultList.push({
-            'str': str,
-            "err": null
-          })
-        }
-      }
-      return resultList;
-    },
+    }
   }
 }
 </script>
