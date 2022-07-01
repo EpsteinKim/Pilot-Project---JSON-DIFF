@@ -26,8 +26,4 @@ class MainController(var testService: TestService){
         return testService.save(testEntityDTO);
     }
 
-    @PostMapping("/hash")
-    public fun hash(@RequestParam(value = "str") str: String) : String{
-        return str
-    }
 }
