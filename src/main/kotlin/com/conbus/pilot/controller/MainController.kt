@@ -28,7 +28,6 @@ class MainController(var testService: TestService){
 
     @PostMapping("/hash")
     public fun hash(@RequestParam(value = "str") str: String) : String{
-        println(str.hashCode())
         return str
     }
 }

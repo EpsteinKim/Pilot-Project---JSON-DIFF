@@ -3,6 +3,7 @@
     <textarea placeholder="Enter JSON" v-model="areaVal1"></textarea>
     <div>
       <button @click="compare">Compare It</button>
+      <button @click="hash">console encrypt Test</button>
       <p><a @click="setSample">Sample Data</a></p>
     </div>
 
@@ -18,7 +19,7 @@ export default {
   data() {
     return {
       areaVal1: '',
-      areaVal2: ''
+      areaVal2: '',
     }
   },
   methods: {
@@ -26,13 +27,17 @@ export default {
       const leftJson = JSON.parse(this.areaVal1)
       const rightJson = JSON.parse(this.areaVal2)
       const diffJson = this.makeDiffJson()
-      /*
-        데이터 베이스에 create할 것 : leftJson.stringify, rightJson.stringify, diffJson.stringify
-      */
+
+      // todo(해쉬값 아이디 생성)
+      const leftJsonHash = this.hash(this.areaVal1)
+      const rightJsonHash = this.hash(this.areaVal2)
+      const id = leftJsonHash + rightJsonHash
+
+      // 데이터 베이스 전달값 간소화 : 결과값 해쉬값
       const leftJsonStr = JSON.stringify(leftJson)
       const rightJsonStr = JSON.stringify(rightJson)
       const diffJsonStr = JSON.stringify(diffJson)
-      const id = this.idMake();
+
       fetch('/api/save', {
         method: 'post',
         headers: {
@@ -47,10 +52,10 @@ export default {
       this.$router.push({
         name: 'after',
         params: {
-          'leftJson' : this.makeJsonSplitByEnterArr(leftJson),
-          'rightJson' : this.makeJsonSplitByEnterArr(rightJson)
+          'leftJson': this.makeJsonSplitByEnterArr(leftJson),
+          'rightJson': this.makeJsonSplitByEnterArr(rightJson)
         },
-        props:{
+        props: {
           'idx': id
         }
       })
@@ -59,19 +64,18 @@ export default {
       this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key", "isGood" : 1}'
       this.areaVal2 = '{ "name":"world", "age":20, "isGood" : 1}'
     },
-    idMake() { // 변경될 사항
-      const today = new Date();
-      const year = today.getFullYear().toString().substring(2)
-      const month = this.addZero(today.getMonth()+1)
-      const date = this.addZero(today.getDate())
-      const hour = this.addZero(today.getHours())
-      const minute = this.addZero(today.getMinutes())
-      const second = this.addZero(today.getSeconds())
-      const random = Math.random().toString().substring(2, 5)
-      return `${year}${month}${date}${hour}${minute}${second}${random}`;
-    },
-    addZero(dateComponent){
-      return dateComponent < 10 ? '0' + dateComponent : dateComponent;
+    hash(data) { //idMake에서 hash로 변경
+      const cryptoJs = require('crypto-js')
+      if (typeof (data) == 'object') {
+        const str = JSON.stringify(data, null, 1);
+        const hash = cryptoJs.SHA3(str, {outputLength: 256}).toString();
+        return hash
+      } else if (typeof (data) == 'string') {
+        // 코드의 낭비지만 JSON으로 파싱할 수 있는 지 확인합니다.
+        const str = JSON.stringify(JSON.parse(data), null, 1);
+        const hash = cryptoJs.SHA3(str, {outputLength: 256}).toString();
+        return hash
+      }
     },
     makeDiffJson() {
       const diffJson = {};
@@ -100,7 +104,7 @@ export default {
 
       return diffJson;
     },
-    makeJsonSplitByEnterArr(json){
+    makeJsonSplitByEnterArr(json) {
       const jsonStr = JSON.stringify(json, null, 2);
       const diffJson = this.makeDiffJson();
       const resultList = [];
@@ -111,11 +115,11 @@ export default {
         if (str.startsWith('\"')) {
           const key = str.match('"\\w*"')[0].replaceAll('"', '')
           // 문제가 있는 경우
-          if(diffJson.hasOwnProperty(key)){
+          if (diffJson.hasOwnProperty(key)) {
             const reason = diffJson[key]
             resultList.push({
-              "str" : str,
-              "err" : reason
+              "str": str,
+              "err": reason
             })
             continue;
           }
