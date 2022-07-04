@@ -8,11 +8,20 @@ import org.springframework.stereotype.Service
 
 @Service
 @AllArgsConstructor
-class TestService (
+class TestService(
         var testEntityRepository: TestEntityRepository
-        ) {
+) {
+
     fun save(testEntityDTO: TestEntityDTO) {
-        val testEntity = TestEntity(testEntityDTO.idx, testEntityDTO.leftJsonStr, testEntityDTO.rightJsonStr, testEntityDTO.diffJsonStr)
-        testEntityRepository.save(testEntity)
+        val testEntity = TestEntity(
+                id = testEntityDTO.id,
+                json = testEntityDTO.json,
+                result = testEntityDTO.result
+        )
+        testEntityRepository.save(testEntity);
+    }
+
+    fun isExist(id: String): Boolean {
+        return testEntityRepository.findById(id).isPresent
     }
 }

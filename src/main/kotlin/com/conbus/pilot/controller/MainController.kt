@@ -18,12 +18,19 @@ class MainController(var testService: TestService){
 
     @GetMapping("/test")
     public fun test(@RequestParam data: String): String{
-        return data
+        return data;
     }
 
     @PostMapping("/save")
     public fun save(@RequestBody testEntityDTO: TestEntityDTO) {
+        println(testEntityDTO)
         return testService.save(testEntityDTO);
     }
 
+    @GetMapping("/isExist")
+    public fun isExist(@RequestParam id: String): Boolean{
+        var isExist = testService.isExist(id);
+        println(isExist)
+        return isExist
+    }
 }

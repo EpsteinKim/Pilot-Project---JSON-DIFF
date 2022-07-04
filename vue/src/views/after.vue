@@ -1,7 +1,7 @@
 <template>
   <div id="after">
     <div>
-      <div v-bind:class="item.err" class="result" v-for="item in this.$route.params.leftJson">
+      <div v-bind:class="item.err" class="result" v-for="item in this.$route.query.leftJson">
         {{ item.str.startsWith('\"') ? "&nbsp &nbsp" + item.str : item.str }}
       </div>
     </div>
@@ -9,7 +9,7 @@
       <button @click="goBack">before 페이지로 이동</button>
     </div>
     <div>
-      <div v-bind:class="item.err" class="result" v-for="item in this.$route.params.rightJson">
+      <div v-bind:class="item.err" class="result" v-for="item in this.$route.query.rightJson">
         {{ item.str.startsWith('\"') ? "&nbsp &nbsp" + item.str : item.str }}
       </div>
     </div>
@@ -25,6 +25,10 @@ export default {
     goBack() {
       this.$router.push('/');
     }
+  },
+  beforeCreate(){
+    const id = this.$route.query.id;
+    console.log(id)
   }
 }
 </script>

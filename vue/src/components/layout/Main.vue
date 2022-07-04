@@ -4,8 +4,10 @@
     <div>
       <button @click="compare">Compare It</button>
       <button @click="test">Test</button>
-      <button @click="setSample2">sample 2</button>
+      <button @click="arraySample">arraySample</button>
       <button @click="setSample3">sample 3</button>
+      <button @click="jsonSample">jsonSample</button>
+      <button @click="jsonInArraySample">jsonInArraySample</button>
       <p><a @click="setSample">Sample Data</a></p>
     </div>
 
@@ -24,102 +26,63 @@ export default {
     }
   },
   methods: {
-    // todo DB전송할 결과값 생성중
     test() {
+      const [leftJson, rightJson] = [JSON.parse(this.areaVal1), JSON.parse(this.areaVal2)];
 
+      const diffJson = this.findDiffJson();
+
+      const result = {};
+      this.compareByDiffJsonAndJson(leftJson, diffJson, result);
+      console.log(JSON.stringify(result, null, 2))
+      const [leftJsonStr, rightJsonStr] = [JSON.stringify(leftJson, null, 1), JSON.stringify(rightJson, null, 1)]
+      console.log(leftJsonStr)
+      console.log(diffJson)
+      console.log(JSON.stringify(result, null, 2))
+      const id = this.hash(leftJsonStr + rightJsonStr);
+      const jsonStr = leftJsonStr + ' (separator) ' + rightJsonStr;
+
+      this.save(id, jsonStr, result)
     },
-    compare() {
-      const [leftJson, rightJson] = [JSON.parse(this.areaVal1), JSON.parse(this.areaVal2)]
-      const diffJson = this.findDiffJson(leftJson, rightJson)
-
-      const [leftJsonStr, rightJsonStr] = [JSON.stringify(leftJson, null, 1), JSON.stringify(rightJson, null, 1)];
-
-      // 해시 아이디 생성
-      const id = this.hash(leftJsonStr + rightJsonStr)
-
-      // 데이터 베이스 전달값 간소화 필요 : 결과값 해쉬값
-      const diffJsonStr = JSON.stringify(diffJson)
-
-      // todo 결과값 생성중 ( 미완성 )
-      console.log(leftJsonStr.replaceAll('\n', '\\n').split('\\n'))
-
-      // todo ( 간소화 작업 ) 미완성 : 결과값 // 완성 : 해쉬값 원본값
-      const jsonStrData = leftJsonStr + ' (separator) ' + rightJsonStr;
-      const [left, right] = jsonStrData.split(' (separator) ');
-
-      // 백단 REST API 변경 필요
-      fetch('/api/save', {
-        method: 'post',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          idx, leftJsonStr, rightJsonStr, diffJsonStr
+    async save(id, jsonStr, result) {
+      const response = await this.$axios.get(`api/isExist?id=${id}`)
+      if (!response.data) { // DB에 값이 없는 경우
+        this.$axios.post(`api/save`, {
+          id,
+          json: jsonStr,
+          result: JSON.stringify(result)
         })
-      })
-
-      // routing 과정
+      }
       this.$router.push({
         name: 'after',
-        params: {
-          // 함수 변경 필요
-          'leftJson': this.makeJsonSplitByEnterArr(leftJson),
-          'rightJson': this.makeJsonSplitByEnterArr(rightJson)
-        },
+        query: {id}
       })
     },
     setSample() {
       this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key", "isGood" : 1}'
       this.areaVal2 = '{ "name":"world", "age":20, "isGood" : 1}'
     },
-    setSample2() {
-      this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key", "isGood" : 1}'
+    arraySample() {
+      this.areaVal1 = '{ "name":"hello", "age":"20", "noKey":"I have no Key", "isGood" : ["1"]}'
       this.areaVal2 = '{ "name":"world", "age":20, "isGood" : [1,2]}'
     },
     setSample3() {
       this.areaVal1 = '{"Aidan Gillen": {"array": ["Game of Thron\\"es","The Wire"],"string": "some string","int": 2,"aboolean": true, "boolean": true,"object": {"foo": "bar","object1": {"new prop1": "new prop value"},"object2": {"new prop1": "new prop value"},"object3": {"new prop1": "new prop value"},"object4": {"new prop1": "new prop value"}}},"Amy Ryan": {"one": "In Treatment","two": "The Wire"},"Annie Fitzgerald": ["Big Love","True Blood"],"Anwan Glover": ["Treme","The Wire"],"Alexander Skarsgard": ["Generation Kill","True Blood"], "Clarke Peters": null}'
       this.areaVal2 = '{"Aidan Gillen": {"array": ["Game of Thrones","The Wire"],"string": "some string","int": "2","otherint": 4, "aboolean": "true", "boolean": false,"object": {"foo": "bar"}},"Amy Ryan": ["In Treatment","The Wire"],"Annie Fitzgerald": ["True Blood","Big Love","The Sopranos","Oz"],"Anwan Glover": ["Treme","The Wire"],"Alexander Skarsg?rd": ["Generation Kill","True Blood"],"Alice Farmer": ["The Corner","Oz","The Wire"]}'
     },
-    hash(data) { //idMake에서 hash로 변경
+    jsonSample() {
+      this.areaVal1 = '{ "name" : {"hi":"1"}}'
+      this.areaVal2 = '{ "name" : {"hi":1}}'
+    },
+    jsonInArraySample() {
+      this.areaVal1 = '{ "name" : [{"hi":1}, 1]}'
+      this.areaVal2 = '{ "name" : [{"hi":2}, 1]}'
+    },
+
+    hash(str) { //idMake에서 hash로 변경
       const cryptoJs = require('crypto-js')
-      let str = '';
-      if (typeof (data) == 'object') {
-        str = JSON.stringify(data, null, 1);
-      } else if (typeof (data) == 'string') {
-        // 코드의 낭비지만 JSON으로 파싱할 수 있는 지 확인합니다.
-        str = JSON.stringify(JSON.parse(data), null, 1);
-      }
-      const hash = cryptoJs.SHA3(str, {outputLength: 256}).toString();
-      return hash
+      return cryptoJs.SHA3(str, {outputLength: 256}).toString();
     },
-    makeDiffJson() {
-      const diffJson = {};
-      const leftJson = JSON.parse(this.areaVal1);
-      const rightJson = JSON.parse(this.areaVal2);
-
-      // LeftJSON 기준으로 비교
-      for (let [key, value] of Object.entries(leftJson)) {
-        if (!rightJson.hasOwnProperty(key)) {
-          diffJson[key] = 'not_key' //주석
-        } else {
-          if (value == rightJson[key]) {
-            if (value !== rightJson[key]) {
-              diffJson[key] = 'diff_type'
-            }
-          } else {
-            diffJson[key] = 'diff_val'
-          }
-          delete rightJson[key];
-        }
-      }
-      // RightJSON 에 남은 키들 소진 시작
-      for (let key of Object.keys(rightJson)) {
-        diffJson[key] = 'not_key'
-      }
-      return diffJson;
-    },
-
-    // todo: 새로운 차이점 발견하는 함수 생성중
+    // todo: Depth 상관없이 프로퍼티값이 JSON, Array, 등등 일 경우 차이점 함수 구현 완료
     findDiffJson(json1 = JSON.parse(this.areaVal1), json2 = JSON.parse(this.areaVal2)) {
       const diffJson = {}
       for (let key in json1) {
@@ -129,9 +92,9 @@ export default {
           // 프로퍼티를 가지고 있다는 가정
           if (json1[key] != json2[key]) {
             if (Array.isArray(json1[key]) && Array.isArray(json2[key])) {
-              // 인덱스
+              diffJson[key] = this.findDiffArray(json1[key], json2[key]);
             } else if (typeof json1[key] == 'object' && typeof json2[key] == 'object') {
-
+              diffJson[key] = this.findDiffJson(json1[key], json2[key])
             } else {
               diffJson[key] = 'diff_val'
             }
@@ -141,19 +104,76 @@ export default {
           delete json2[key]
         }
       }
-
       for (let key in json2) {
         diffJson[key] = 'not_key'
       }
-      console.log(diffJson)
       return diffJson
     },
+
+    // findDiffJson 에 종속적인 배열 비교 함수 구현
     findDiffArray(arr1, arr2) {
       const diffJson = {}
-      for (let index in arr1) {
+      for (let i in arr1.length > arr2.length ? arr1 : arr2) {
+        if (Array.isArray(arr1[i]) && Array.isArray(arr2[i])) {
+          this.findDiffArray()
+        } else if (typeof arr1[i] == 'object' && typeof arr2[i] == 'object') {
+          diffJson[i] = this.findDiffJson(arr1[i], arr2[i])
+        } else { // 객체, 배열 걸렀음
+          if (arr1[i] !== arr2[i]) {
+            if (arr1[i] == arr2[i]) {
+              diffJson[i] = 'diff_type';
+            } else {
+              diffJson[i] = 'diff_value'
+            }
+          }
+        }
+      }
+      return diffJson;
+    },
 
+    // todo : 새로운 findDiffJson의 리턴데이터를 바탕으로 템플릿 엔진에서 돌릴 배열 생성
+    compareByDiffJsonAndJson(json, diffJson, result = {}, countArr = []) {
+      // countArr는 length로 index를 뽑아내기 위한 역할입니다. 아무 원소나 작성하시고 .length로 뽑아내면 됩니다.
+      const jsonStr = JSON.stringify(json, null, 1);
+      const strArr = jsonStr.split('\n')
+
+      for (let str of strArr) {
+        if (str.match('"[\\w\\s]+": {') !== null) { // JSON
+          const key = str.match('"[\\w\\s]+"').toString().replaceAll('"', '')
+          if (diffJson.hasOwnProperty(key)) { // 차이점을 발견했을 경우
+            this.compareByDiffJsonAndJson(json[key], diffJson[key], result, countArr);
+          }
+        } else if (str.match('"[\\w\\s]+": \\[') !== null) { // Array
+          const key = str.match('"[\\w\\s]+"').toString().replaceAll('"', '')
+          if (diffJson.hasOwnProperty(key)) { // 차이점을 발견했을 경우
+            // todo :  종속적인 함수 구현 필요 ( 배열 전용 )
+            this.compareByDiffJsonAndArray(json[key], diffJson[key], result, countArr);
+          }
+        } else if (str.match('"[\\w\\s]+":') !== null) { // depth
+          const key = str.match('"[\\w\\s]+"').toString().replaceAll('"', '')
+          if (diffJson.hasOwnProperty(key)) {
+            result[countArr.length] = diffJson[key];
+          }
+        }
+        countArr.push(0)
       }
     },
+    // compareByDiffJsonAndJson에 종속적인 함수
+    compareByDiffJsonAndArray(arr, diffJson, result, countArr) {
+      for (let i in arr) {
+        countArr.push(0);
+        if (diffJson.hasOwnProperty(i)) {
+          if (Array.isArray(arr[i])) {
+            this.compareByDiffJsonAndArray(arr[i], diffJson[i], result, countArr)
+          } else if (typeof arr[i] == 'object') {
+            this.compareByDiffJsonAndJson(arr[i], diffJson[i], result, countArr)
+          } else {
+            result[countArr.length] = diffJson[i]
+          }
+        }
+      }
+    },
+
     // 갈아 엎을 예정
     makeJsonSplitByEnterArr(json) {
       const jsonStr = JSON.stringify(json, null, 2);

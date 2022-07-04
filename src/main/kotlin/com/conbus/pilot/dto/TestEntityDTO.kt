@@ -6,12 +6,11 @@ import lombok.Getter
 @Data
 @Getter
 class TestEntityDTO(
-        var idx: String,
-        var leftJsonStr: String,
-        var rightJsonStr: String,
-        var diffJsonStr: String
+        var id: String,
+        var json: String,
+        var result: String
 ){
     override fun toString(): String {
-        return "TestEntityDTO(idx='$idx', leftJsonStr='$leftJsonStr', rightJsonStr='$rightJsonStr', diffJsonStr='$diffJsonStr')"
+        return "TestEntityDTO(id='$id', json='$json', result='$result')"
     }
 }
