@@ -1,16 +1,13 @@
 package com.conbus.pilot.dto
 
-import lombok.Data
-import lombok.Getter
+class TestEntityDTO{
 
-@Data
-@Getter
-class TestEntityDTO(
-        var id: String,
-        var json: String,
-        var result: String
-){
+    var id: String = ""
+    var leftJson: String = ""
+    var rightJson: String = ""
+    var diffJson: String = ""
     override fun toString(): String {
-        return "TestEntityDTO(id='$id', json='$json', result='$result')"
+        return "TestEntityDTO(id='$id', leftJson='$leftJson', rightJson='$rightJson', diffJson='$diffJson')"
     }
+
 }

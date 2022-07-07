@@ -10,8 +10,11 @@ class TestEntity(
         var id: String,
 
         @Column(length=99999)
-        var json: String,
+        var leftJson: String,
 
         @Column(length=99999)
-        var result: String
+        var rightJson: String,
+
+        @Column(length=99999)
+        var diffJson: String
 )

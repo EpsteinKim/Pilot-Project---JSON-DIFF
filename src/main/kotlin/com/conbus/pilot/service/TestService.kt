@@ -15,13 +15,27 @@ class TestService(
     fun save(testEntityDTO: TestEntityDTO) {
         val testEntity = TestEntity(
                 id = testEntityDTO.id,
-                json = testEntityDTO.json,
-                result = testEntityDTO.result
+                leftJson = testEntityDTO.leftJson,
+                rightJson = testEntityDTO.rightJson,
+                diffJson = testEntityDTO.diffJson
         )
         testEntityRepository.save(testEntity);
     }
 
     fun isExist(id: String): Boolean {
         return testEntityRepository.findById(id).isPresent
+    }
+
+    fun getData(id: String): TestEntityDTO {
+        val testEntity = testEntityRepository.findById(id);
+        val testEntityDTO = TestEntityDTO()
+
+        if(testEntity.isPresent){
+            testEntityDTO.id = id
+            testEntityDTO.leftJson = testEntity.get().leftJson
+            testEntityDTO.rightJson = testEntity.get().rightJson
+            testEntityDTO.diffJson = testEntity.get().diffJson
+        }
+        return testEntityDTO
     }
 }

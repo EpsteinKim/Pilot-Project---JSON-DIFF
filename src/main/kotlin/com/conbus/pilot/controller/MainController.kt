@@ -33,4 +33,9 @@ class MainController(var testService: TestService){
         println(isExist)
         return isExist
     }
+
+    @GetMapping("/getData")
+    public fun getData(@RequestParam id: String): TestEntityDTO{
+        return testService.getData(id);
+    }
 }
