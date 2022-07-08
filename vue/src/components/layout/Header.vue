@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2>JSON DIFF</h2>
-    <p>yellow : diff_value<br> pink : diff_proto<br> gray : no key</p>
+    <p>yellow : diff_value<br>red : diff_type<br>gray : no key</p>
   </div>
 </template>
 
