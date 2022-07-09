@@ -2,7 +2,9 @@
   <div id="main">
     <textarea placeholder="Enter JSON" v-model="leftArea"/>
     <div>
-      <button @click="compare">Compare It</button>
+
+      <span v-if="isErrExist" class="msg">{{ msg }}</span>
+      <button :disabled="isErrExist" @click="compare" >Compare</button>
       <button @click="setSample3">sample</button>
       <p><a @click="setSample">Sample Data</a></p>
     </div>
@@ -19,9 +21,28 @@ export default {
     return {
       leftArea: '',
       rightArea: '',
+      msg: 'compare'
     }
   },
+  computed: {
+    isErrExist(){
+      if(this.leftArea.length == 0 || this.rightArea.length == 0){
+        this.msg = 'input value'
+        return true
+      }else{
+        try{
+          JSON.parse(this.leftArea)
+          JSON.parse(this.rightArea)
+        }catch(e){
+          this.msg =  `can't parse JSON`
+          return true
+        }
+      }
+      return false
+    },
+  },
   methods: {
+
     compare() {
       let leftJson = '', rightJson = ''
       try {
@@ -169,5 +190,9 @@ button {
   font-size: 15px;
   border-radius: 10px;
   height: 40px;
+}
+
+.msg {
+  text-align: center;
 }
 </style>

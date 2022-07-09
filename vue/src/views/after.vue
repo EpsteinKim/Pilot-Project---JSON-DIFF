@@ -1,7 +1,7 @@
 <template>
   <div id="after">
     <div>
-      <div :class="item.err" class="result" v-for="(item, index) in leftResultArr">
+      <div :class="item.err" :key="index" class="result" v-for="(item, index) in leftResultArr">
        {{index}}. &nbsp; &nbsp;{{ item.str }}
       </div>
     </div>
@@ -9,7 +9,7 @@
       <button @click="goBack">before 페이지로 이동</button>
     </div>
     <div>
-      <div :class="item.err" class="result" v-for="(item, index) in rightResultArr">
+      <div :class="item.err" :key="index" class="result" v-for="(item, index) in rightResultArr">
         {{index}}. &nbsp; &nbsp;{{ item.str }}
       </div>
 
@@ -58,7 +58,13 @@ export default {
         this.leftJson = await JSON.parse(data.leftJson)
         this.diffJson = await JSON.parse(data.diffJson)
       } catch (e) {
-        console.log(e)
+        const {isExist} = await this.$axios.get(`api/isExist?id=${id}`)
+
+        if(!isExist) {
+          await alert('잘못된 접근입니다.')
+          this.goBack()
+        }
+
       }
     },
     isMatch(str, regexp) {
