@@ -2,7 +2,7 @@
   <div id="after">
     <div class="result">
       <div :class="item.err" :key="index" class="row" v-for="(item, index) in leftResultArr">
-        {{ index }} &nbsp; &nbsp;{{ item.str }}
+        {{ index }}. &nbsp; &nbsp;{{ item.str }}
       </div>
     </div>
     <div>
@@ -10,7 +10,7 @@
     </div>
     <div class="result">
       <div :class="item.err" :key="index" class="row" v-for="(item, index) in rightResultArr">
-        {{ index }} &nbsp; &nbsp;{{ item.str }}
+        {{ index }}. &nbsp; &nbsp;{{ item.str }}
       </div>
 
     </div>
@@ -26,11 +26,10 @@ export default {
     return {
       leftResultArr: Array,
       rightResultArr: Array,
-      evenNum:0
     }
   },
-  async created() {
-    await this.getResult(this.$route.query.id)
+  created() {
+    this.getResult(this.$route.query.id)
   },
   methods: {
     goBack() {
@@ -62,6 +61,8 @@ export default {
       const jsonStrArr = JSON.stringify(json, null, 5).split('\n')
       const resultList = [];
       const pathList = [];
+      console.log(JSON.stringify(json, null, 2))
+      console.log(diffJson)
       /*
                   JSON 상황 :           Arr 상황 :
                     k : v ok             str,num ..
@@ -71,8 +72,32 @@ export default {
                     K : []               []
       */
 
+      /*
+        todo : diff_type 간 마지막 경로에 따라서 object인 경우, arr인 경우 구분 필요
+        배열일 경우 : pop -> 마지막 경로는 number
+        객체일 경우 : pop -> 마지막 경로는 string
+      */
+      let objTabIdx = 0, arrTabIdx = 0
       for (let i = 0; i < jsonStrArr.length; i++) {
+        console.log(i, pathList, 'start')
         const str = jsonStrArr[i]
+        // diff_type 연산중
+        if (objTabIdx > 0) {
+          if (str.indexOf('}') == objTabIdx || str.indexOf(']') == objTabIdx) {
+            objTabIdx = 0
+            pathList.pop()
+          }
+          resultList[i] = {"str": str, "err": null}
+          continue
+        } else if (arrTabIdx > 0) { // 마지막 경로는 number
+          if (str.indexOf('}') == arrTabIdx || str.indexOf(']') == arrTabIdx) {
+            arrTabIdx = 0
+            pathList.pop()
+            pathList[pathList.length - 1]++
+          }
+          resultList[i] = {"str": str, "err": null}
+          continue
+        }
 
         if (str.match(/^({|})$/)) {
           resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
@@ -86,11 +111,21 @@ export default {
         if (typeof pathList[pathList.length - 1] != 'number') {
           if (str.match(/".+": \[$/)) { // k : arr
             pathList.push(this.getKey(str))
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            const errCause = this.inspect(diffJson, pathList)
+            if (errCause == 'diff_type') { //key만 들어간 상태
+              objTabIdx = str.search('[^ ]')
+              resultList[i] = {"str": str, "err": errCause}
+              continue
+            }
+            resultList[i] = {"str": str, "err": errCause === undefined ? null : errCause}
             pathList.push(-1)
           } else if (str.match(/".+": {$/)) { // k : json
             pathList.push(this.getKey(str))
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            const errCause = this.inspect(diffJson, pathList)
+            if (errCause == 'diff_type') { // key만 들어간 상태
+              objTabIdx = str.search('[^ ]')
+            }
+            resultList[i] = {"str": str, "err": errCause === undefined ? null : errCause}
           } else if (str.match(/".+":/)) { // k : [], {}, value
             pathList.push(this.getKey(str))
             resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
@@ -100,26 +135,51 @@ export default {
             pathList.pop()
           }
         } else { // Arr 시작
-          const regExpArr = [/(true|false|\d+|".+",?$)/, /\s+{$/, /\s+\[/]
+          const regExpArr = [/(true|false|\d+,?|".+",?$)/, /^\s+(\[\]|{}),?$/] // value, obj Start, [] {}
           if (regExpArr.find(regExp => str.match(regExp))) {
             pathList[pathList.length - 1]++
-          } else if (str.match(/".+": {$/)) {
+          } else if (str.match(/\s+{$/)) { // 배열에서 {로 시작할 때
+            pathList[pathList.length - 1]++
+            const errCause = this.inspect(diffJson, pathList)
+            if (errCause == 'diff_type') { // diff_type skip 추가한 항목
+              arrTabIdx = str.search('[^ ]')
+              resultList[i] = {"str": str, "err": errCause}
+              continue
+            }
+          } else if (str.match(/^\s+\[$/)) { // 배열에서 [로 시작할 때
+            pathList[pathList.length - 1]++
+            const errCause = this.inspect(diffJson, pathList)
+            if (errCause == 'diff_type') { // diff_type skip 추가한 항목
+              arrTabIdx = str.search('[^ ]')
+              resultList[i] = {"str": str, "err": errCause}
+              continue
+            }
+            resultList[i] = {"str": str, "err": errCause === undefined ? null : errCause}
+            pathList.push(-1)
+          } else if (str.match(/".+": {$/)) { // after {
             pathList.push(this.getKey(str))
-          } else if (str.match(/\s+\]/)) {
+          } else if (str.match(/".+": \[$/)) {
+            pathList.push(this.getKey(str))
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            pathList.push(-1)
+          } else if (str.match(/^\s+\],?$/)) { // end Arr todo : 조건 필요 case1 : object, case2 : arr
             pathList.pop()
             resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
-            pathList.pop()
+            if (typeof pathList[pathList.length - 1] != 'number') {
+              pathList.pop()
+            }
             continue
           }
           resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
         }
+        console.log(i, pathList, 'end')
       }
       return resultList
     },
 
-    inspect(diffJson, whereList) { //
+    inspect(diffJson, pathList) { //
       let position = diffJson
-      for (let path of whereList) {
+      for (let path of pathList) {
         if (position.hasOwnProperty(path)) {
           if (typeof position[path] == 'object') {
             position = position[path]
@@ -138,20 +198,23 @@ export default {
 #after {
   display: flex;
   justify-content: space-around;
-  width:100%;
+  width: 100%;
 }
-.result{
-  width:40%
+
+.result {
+  width: 40%
 }
+
 .row {
   font-size: 14px;
   font-weight: bold;
   white-space: pre;
   margin: 2px 0;
-  border-bottom:1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
-.mid-btn{
-  width:max-content;
+
+.mid-btn {
+  width: max-content;
 }
 
 /* 일치 하는 키가 없을 경우 */
