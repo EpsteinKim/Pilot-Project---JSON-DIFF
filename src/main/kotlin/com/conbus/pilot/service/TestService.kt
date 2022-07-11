@@ -15,9 +15,7 @@ class TestService(
     fun save(testEntityDTO: TestEntityDTO) {
         val testEntity = TestEntity(
                 id = testEntityDTO.id,
-                leftJson = testEntityDTO.leftJson,
-                rightJson = testEntityDTO.rightJson,
-                diffJson = testEntityDTO.diffJson
+                result = testEntityDTO.result
         )
         testEntityRepository.save(testEntity);
     }
@@ -32,9 +30,7 @@ class TestService(
 
         if(testEntity.isPresent){
             testEntityDTO.id = id
-            testEntityDTO.leftJson = testEntity.get().leftJson
-            testEntityDTO.rightJson = testEntity.get().rightJson
-            testEntityDTO.diffJson = testEntity.get().diffJson
+            testEntityDTO.result = testEntity.get().result
         }
         return testEntityDTO
     }

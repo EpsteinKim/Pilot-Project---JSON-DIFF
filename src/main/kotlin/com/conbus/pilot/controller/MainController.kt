@@ -29,9 +29,7 @@ class MainController(var testService: TestService){
 
     @GetMapping("/isExist")
     public fun isExist(@RequestParam id: String): Boolean{
-        var isExist = testService.isExist(id);
-        println(isExist)
-        return isExist
+        return testService.isExist(id)
     }
 
     @GetMapping("/getData")

@@ -1,16 +1,16 @@
 <template>
   <div id="after">
-    <div>
-      <div :class="item.err" :key="index" class="result" v-for="(item, index) in leftResultArr">
-       {{index}}. &nbsp; &nbsp;{{ item.str }}
+    <div class="result">
+      <div :class="item.err" :key="index" class="row" v-for="(item, index) in leftResultArr">
+        {{ index }} &nbsp; &nbsp;{{ item.str }}
       </div>
     </div>
     <div>
-      <button @click="goBack">before 페이지로 이동</button>
+      <button @click="goBack" class="mid-btn">before 페이지로 이동</button>
     </div>
-    <div>
-      <div :class="item.err" :key="index" class="result" v-for="(item, index) in rightResultArr">
-        {{index}}. &nbsp; &nbsp;{{ item.str }}
+    <div class="result">
+      <div :class="item.err" :key="index" class="row" v-for="(item, index) in rightResultArr">
+        {{ index }} &nbsp; &nbsp;{{ item.str }}
       </div>
 
     </div>
@@ -24,21 +24,13 @@ export default {
   name: "after",
   data() {
     return {
-      leftJson: {},
-      rightJson: {},
-      diffJson: {},
+      leftResultArr: Array,
+      rightResultArr: Array,
+      evenNum:0
     }
   },
-  computed: {
-    rightResultArr(){
-      return this.makeResultJson(this.rightJson, this.diffJson)
-    },
-    leftResultArr(){
-      return this.makeResultJson(this.leftJson, this.diffJson)
-    }
-  },
-  created() {
-    this.getJsonStrArr(this.$route.query.id)
+  async created() {
+    await this.getResult(this.$route.query.id)
   },
   methods: {
     goBack() {
@@ -51,29 +43,25 @@ export default {
       return Array.isArray(obj) && 'array' || typeof obj
     },
 
-    async getJsonStrArr(id) {
+    async getResult(id) {
       try {
         const {data} = await this.$axios.get(`api/getData?id=${id}`)
-        this.rightJson = await JSON.parse(data.rightJson)
-        this.leftJson = await JSON.parse(data.leftJson)
-        this.diffJson = await JSON.parse(data.diffJson)
-      } catch (e) {
-        const {isExist} = await this.$axios.get(`api/isExist?id=${id}`)
-
-        if(!isExist) {
+        if (data) {
+          const {rightJson, leftJson, diffJson} = await JSON.parse(data.result)
+          this.leftResultArr = this.makeResultArr(leftJson, diffJson)
+          this.rightResultArr = this.makeResultArr(rightJson, diffJson)
+        } else {
           await alert('잘못된 접근입니다.')
           this.goBack()
         }
-
+      } catch (e) {
+        console.log(e)
       }
     },
-    isMatch(str, regexp) {
-      return str.match(regexp) !== null
-    },
-    makeResultJson(json, diffJson) {
-      const jsonStrArr = JSON.stringify(json, null, 10).split('\n')
+    makeResultArr(json, diffJson) {
+      const jsonStrArr = JSON.stringify(json, null, 5).split('\n')
       const resultList = [];
-      const whereList = [];
+      const pathList = [];
       /*
                   JSON 상황 :           Arr 상황 :
                     k : v ok             str,num ..
@@ -86,47 +74,45 @@ export default {
       for (let i = 0; i < jsonStrArr.length; i++) {
         const str = jsonStrArr[i]
 
-        if (this.isMatch(str, /^({|})/)) { // JSON 시작
-          resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
-        } else if (this.isMatch(str, /^\[/)) {
-          whereList.push(-1)
-        } else if (this.isMatch(str, /^\]/)) {
-          whereList.pop()
-          resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
+        if (str.match(/^({|})$/)) {
+          resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+        } else if (str.match(/^\[$/)) {
+          pathList.push(-1)
+        } else if (str.match(/^\]$/)) {
+          pathList.pop()
+          resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
         }
 
-        if (typeof whereList[whereList.length - 1] != 'number') {
-          if (this.isMatch(str, /".+": \[$/)) { // k : arr
-            whereList.push(this.getKey(str))
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
-            whereList.push(-1)
-          } else if (this.isMatch(str, /".+": {$/)) { // k : json
-            whereList.push(this.getKey(str))
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
-          } else if (this.isMatch(str, /".+":/)) { // k : [], {}, value
-            whereList.push(this.getKey(str))
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
-            whereList.pop()
-          } else if (this.isMatch(str, /\s+}/)) {
-            whereList.pop()
-            resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
+        if (typeof pathList[pathList.length - 1] != 'number') {
+          if (str.match(/".+": \[$/)) { // k : arr
+            pathList.push(this.getKey(str))
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            pathList.push(-1)
+          } else if (str.match(/".+": {$/)) { // k : json
+            pathList.push(this.getKey(str))
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+          } else if (str.match(/".+":/)) { // k : [], {}, value
+            pathList.push(this.getKey(str))
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            pathList.pop()
+          } else if (str.match(/\s+}/)) {
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            pathList.pop()
           }
         } else { // Arr 시작
-          if (this.isMatch(str, /(true|false|\d+|".+",?$)/)) {
-            whereList[whereList.length - 1]++
-          } else if (this.isMatch(str, /\s+{$/)) {
-            whereList[whereList.length - 1]++
-          } else if (this.isMatch(str, /\s+\[/)) {
-            whereList[whereList.length - 1]++
-          } else if (this.isMatch(str, /".+": {$/)) {
-            whereList.push(this.getKey(str))
-          } else if (this.isMatch(str, /\s+\]/)) {
-            whereList.pop()
-            whereList.pop()
+          const regExpArr = [/(true|false|\d+|".+",?$)/, /\s+{$/, /\s+\[/]
+          if (regExpArr.find(regExp => str.match(regExp))) {
+            pathList[pathList.length - 1]++
+          } else if (str.match(/".+": {$/)) {
+            pathList.push(this.getKey(str))
+          } else if (str.match(/\s+\]/)) {
+            pathList.pop()
+            resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
+            pathList.pop()
+            continue
           }
-          resultList[i] = {"str": str, "err": this.inspect(diffJson, whereList)}
+          resultList[i] = {"str": str, "err": this.inspect(diffJson, pathList)}
         }
-        console.log(i + 'end', whereList, this.inspect(diffJson,whereList))
       }
       return resultList
     },
@@ -142,7 +128,7 @@ export default {
           }
         }
       }
-    }
+    },
   },
 
 }
@@ -152,35 +138,35 @@ export default {
 #after {
   display: flex;
   justify-content: space-around;
+  width:100%;
 }
-
-.result {
+.result{
+  width:40%
+}
+.row {
   font-size: 14px;
   font-weight: bold;
   white-space: pre;
   margin: 2px 0;
+  border-bottom:1px solid rgba(0,0,0,0.1);
 }
-.middle_bar{
-  background-color:black;
-  height:20px;
-  position: sticky;
-  top:100px;
-  width:20px
+.mid-btn{
+  width:max-content;
 }
 
 /* 일치 하는 키가 없을 경우 */
 .not_key {
-  background-color: rgba(128, 128, 128, 0.2);
+  background-color: rgba(128, 128, 128, 0.2) !important;
 }
 
 /* type가 일치하지 않을 경우*/
 .diff_type {
-  background-color: rgba(218, 26, 26, 0.5);
+  background-color: rgba(218, 26, 26, 0.5) !important;
 }
 
 /* value가 일치하지 않을 경우 */
 .diff_val {
-  background-color: rgba(255, 255, 0, 0.3);
+  background-color: rgba(255, 255, 0, 0.3) !important;
 }
 
 

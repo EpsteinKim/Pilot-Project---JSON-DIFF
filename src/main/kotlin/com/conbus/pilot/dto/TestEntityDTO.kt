@@ -3,11 +3,8 @@ package com.conbus.pilot.dto
 class TestEntityDTO{
 
     var id: String = ""
-    var leftJson: String = ""
-    var rightJson: String = ""
-    var diffJson: String = ""
+    var result: String = ""
     override fun toString(): String {
-        return "TestEntityDTO(id='$id', leftJson='$leftJson', rightJson='$rightJson', diffJson='$diffJson')"
+        return "TestEntityDTO(id='$id', result='$result')"
     }
-
 }

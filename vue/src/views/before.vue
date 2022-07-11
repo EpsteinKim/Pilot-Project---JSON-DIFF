@@ -1,7 +1,6 @@
 <template>
   <div id="before">
     <mainSection/>
-    <router-link to="/after">after 페이지로 이동</router-link>
   </div>
 
 </template>
