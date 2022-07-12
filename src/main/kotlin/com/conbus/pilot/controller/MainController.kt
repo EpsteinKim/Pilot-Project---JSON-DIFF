@@ -23,7 +23,6 @@ class MainController(var testService: TestService){
 
     @PostMapping("/save")
     public fun save(@RequestBody testEntityDTO: TestEntityDTO) {
-        println(testEntityDTO)
         return testService.save(testEntityDTO);
     }
 

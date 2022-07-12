@@ -22,6 +22,6 @@ class TestService(
 
     fun getData(id: String): TestEntityDTO {
         val testEntity = testEntityRepository.findById(id);
-        return if(testEntity.isPresent) TestEntityDTO(testEntity.get()) else TestEntityDTO()
+        return if (testEntity.isPresent) TestEntityDTO(testEntity.get()) else TestEntityDTO()
     }
 }

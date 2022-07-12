@@ -90,7 +90,7 @@ export default {
           continue
         }
         // diff_type, not_key 연산 종료
-
+        
         if (str.match(/^({|})/)) { // {}도 포함
           resultList[i] = {"str": str, "err": this.getErrCause(diffJson, pathList)}
         } else if (str.match(/^\[$/)) {
