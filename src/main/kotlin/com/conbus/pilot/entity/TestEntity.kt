@@ -12,3 +12,4 @@ class TestEntity(
         @Column(length=99999999)
         var result: String,
 )
+

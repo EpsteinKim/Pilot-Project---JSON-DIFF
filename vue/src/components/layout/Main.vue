@@ -30,17 +30,22 @@ export default {
       const [leftJsonStr, rightJsonStr] = [JSON.stringify(leftJson), JSON.stringify(rightJson)]
       const rightJsonCopy = JSON.parse(rightJsonStr);
       const id = this.hash(leftJsonStr + rightJsonStr);
-      const {data} = await this.$axios.get(`api/isExist?id=${id}`)
-      if (data) {
-        await this.$router.push({
-          name: 'after',
-          query: {id}
-        })
-      } else {
-        const diffJson = this.findDiffJson(leftJson, rightJsonCopy)
-        this.delNullInDiffJson(diffJson)
-        await this.save(id, {leftJson, rightJson, diffJson})
+      try{
+        const {data} = await this.$axios.get(`api/isExist?id=${id}`)
+        if (data) {
+          await this.$router.push({
+            name: 'after',
+            query: {id}
+          })
+        } else {
+          const diffJson = this.findDiffJson(leftJson, rightJsonCopy)
+          this.delNullInDiffJson(diffJson)
+          await this.save(id, {leftJson, rightJson, diffJson})
+        }
+      }catch(e){
+        alert(e.response.statusText)
       }
+
     },
     async save(id, result) { // 수정
       try {

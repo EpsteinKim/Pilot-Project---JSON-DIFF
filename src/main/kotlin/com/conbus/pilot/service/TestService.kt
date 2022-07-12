@@ -13,11 +13,7 @@ class TestService(
 ) {
 
     fun save(testEntityDTO: TestEntityDTO) {
-        val testEntity = TestEntity(
-                id = testEntityDTO.id,
-                result = testEntityDTO.result
-        )
-        testEntityRepository.save(testEntity);
+        testEntityRepository.save(TestEntity(testEntityDTO.id, testEntityDTO.result));
     }
 
     fun isExist(id: String): Boolean {
@@ -26,12 +22,6 @@ class TestService(
 
     fun getData(id: String): TestEntityDTO {
         val testEntity = testEntityRepository.findById(id);
-        val testEntityDTO = TestEntityDTO()
-
-        if(testEntity.isPresent){
-            testEntityDTO.id = id
-            testEntityDTO.result = testEntity.get().result
-        }
-        return testEntityDTO
+        return if(testEntity.isPresent) TestEntityDTO(testEntity.get()) else TestEntityDTO()
     }
 }
