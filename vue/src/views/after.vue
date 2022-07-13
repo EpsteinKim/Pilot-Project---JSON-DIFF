@@ -1,26 +1,33 @@
 <template>
   <div id="after">
-
-    <div class="result">
-      <div :key="index" :class="item.err" class="row" v-for="(item, index) in leftResultArr">
-        {{ index }}. &nbsp; &nbsp;{{ item.str }}
-      </div>
-    </div>
-
-    <div>
-      <button @click="goBack" class="mid-btn">before 페이지로 이동</button>
-    </div>
-
-    <div class="result">
-        <div :key="index" :class="item.err" class="row" v-for="(item, index) in rightResultArr">
+    <v-container class="d-flex flex-column flex-sm-row justify-space-between py-0 mt-10">
+      <v-chip :style="mouse.show? 'visibility: visible': 'visibility: hidden'" class="test row--dense font-weight-black d-none d-sm-block" :class="paintColor(mouse.type)" ref="test">
+        {{mouse.type}}
+      </v-chip>
+      <div class="order-0 overflow-auto col-auto col-sm-5 result">
+        <div :key="index" :class="[item.err,paintColor(item.err)]" class="row" @mousemove="addErrMouseEvent" v-for="(item, index) in leftResultArr">
           {{ index }}. &nbsp; &nbsp;{{ item.str }}
         </div>
-    </div>
+      </div>
 
+      <div class="d-block d-sm-none" style="height:50px"/>
+
+      <v-col class="text-center order-2 order-sm-1">
+        <v-btn class="mb-5" elevation="3" @click="goBack" rounded>BACK</v-btn>
+      </v-col>
+
+      <div class="order-1 order-sm-2 overflow-x-auto col-auto col-sm-5 result">
+        <div :key="index" :class="[item.err,paintColor(item.err)]" class="row" @mousemove="addErrMouseEvent" v-for="(item, index) in rightResultArr">
+          {{ index }}. &nbsp; &nbsp;{{ item.str }}
+        </div>
+      </div>
+
+    </v-container>
   </div>
 </template>
 
 <script>
+import colorObj from "@/assets/color";
 
 export default {
   name: "after",
@@ -28,10 +35,20 @@ export default {
     return {
       leftResultArr: Array,
       rightResultArr: Array,
+      mouse:{
+        X:0,
+        Y:0,
+        show: false,
+        type: null
+      }
     }
   },
   created() {
-    this.getResult(this.$route.query.id)
+    if(this.$route.params.hasOwnProperty('result')){
+
+    }
+    this.makeResult(this.$route.query.id)
+    console.log(this.$route.params)
   },
   methods: {
     goBack() {
@@ -43,8 +60,27 @@ export default {
     getType(obj) {
       return Array.isArray(obj) && 'array' || typeof obj
     },
-
-    async getResult(id) {
+    paintColor(str) {
+      if(colorObj.hasOwnProperty(str)){
+        return colorObj[str]
+      } else {
+        return null
+      }
+    },
+    addErrMouseEvent(event){
+      const errArr = ['diff_type', 'diff_val', 'not_key']
+      this.$refs.test.$el.style.left = (event.clientX + 10)+'px'
+      this.$refs.test.$el.style.top = event.clientY+'px'
+      for(let err of errArr){
+        if(event.target.classList.contains(err)){
+          this.mouse.show = true
+          this.mouse.type = err
+          return
+        }
+      }
+      this.mouse.show = false
+    },
+    async makeResult(id) {
       try {
         const {data} = await this.$axios.get(`api/getData?id=${id}`)
         if (data) {
@@ -90,7 +126,7 @@ export default {
           continue
         }
         // diff_type, not_key 연산 종료
-        
+
         if (str.match(/^({|})/)) { // {}도 포함
           resultList[i] = {"str": str, "err": this.getErrCause(diffJson, pathList)}
         } else if (str.match(/^\[$/)) {
@@ -190,15 +226,15 @@ export default {
 </script>
 
 <style scoped>
-#after {
-  display: flex;
-  justify-content: space-around;
-  width: 100%;
+.test{
+  position:absolute;
+  top:0px;
+  left:0px;
+  font-size: 14px;
 }
 
-.result {
-  width: 400px;
-  overflow-x: auto;
+.result{
+  height:unset;
 }
 
 .row {
@@ -206,30 +242,13 @@ export default {
   font-weight: bold;
   white-space: pre;
   margin: 2px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: inline-block;
   min-width: 400px;
+  cursor: pointer;
 }
 
-.mid-btn {
-  width: max-content;
+@media(max-width: 600px){
+  .result{height:300px}
 }
-
-
-/* 일치 하는 키가 없을 경우 */
-.not_key {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-}
-
-/* type가 일치하지 않을 경우*/
-.diff_type {
-  background-color: rgba(218, 26, 26, 0.5) !important;
-}
-
-/* value가 일치하지 않을 경우 */
-.diff_val {
-  background-color: rgba(255, 255, 0, 0.3) !important;
-}
-
 
 </style>

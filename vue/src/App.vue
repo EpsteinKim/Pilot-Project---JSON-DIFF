@@ -1,8 +1,11 @@
 <template>
-  <div id="app">
-    <header-div/>
-    <router-view/>
-  </div>
+  <v-app id="app">
+    <v-container>
+      <header-div/>
+      <router-view/>
+    </v-container>
+
+  </v-app>
 </template>
 
 <script>
@@ -26,3 +29,4 @@ export default {
   color: #2c3e50;
 }
 </style>
+

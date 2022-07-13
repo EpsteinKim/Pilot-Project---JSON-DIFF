@@ -1,15 +1,40 @@
 <template>
-  <div id="main">
-    <textarea @blur="setErrMsg" placeholder="Enter JSON" v-model="leftArea"/>  <!--blur 처리-->
-    <div>
+  <div>
+    <v-container class="">
+      <v-alert color="red lighten-2" :class="commonErr? 'visible' : 'hidden'" class="mx-auto mb-0 font-weight-black" elevation="4"
+               type="error">
+        {{ commonErr }}
+      </v-alert>
+    </v-container>
 
-      <span v-if="msg" class="msg">{{ msg }}</span>
-      <button :disabled="msg" @click="compare">Compare</button>
-      <p><a @click="setSample">Sample Data1</a></p>
-      <p><a @click="setSample2">Sample Data2</a></p>
-    </div>
+    <v-container id="main" class="d-flex flex-column flex-sm-row justify-space-between py-0">
+      <div class="order-0">
+        <v-textarea label="LeftJson" @blur="setErrMsg()" hint="enter Json" v-model="leftArea" filled rows="15"
+                    no-resize/>
+        <v-alert color="blue lighten-4" :class="leftErr? 'visible' : 'hidden'" class="mx-auto mb-5 my-sm-0" elevation="4"
+                 type="error">
+          {{ leftErr }}
+        </v-alert>
+      </div>
 
-    <textarea @blur="setErrMsg" placeholder="Enter JSON" v-model="rightArea"/>
+
+      <v-col class="text-center order-2 order-sm-1">
+        <v-btn class="mb-5" elevation="3" :disabled="leftErr != null || rightErr != null" @click="compare" rounded>Compare</v-btn>
+        <p><a @click="setSample">Sample Data1</a></p>
+        <p><a @click="setSample2">Sample Data2</a></p>
+      </v-col>
+
+      <div class="order-1 order-sm-2">
+        <v-textarea label="RightJson" @blur="setErrMsg()" hint="enter Json" v-model="rightArea" filled rows="15"
+                    no-resize class="row"/>
+        <v-alert color="blue lighten-4" :class="rightErr? 'visible' : 'hidden'" class="mx-auto" elevation="4"
+                 type="error">
+          {{ rightErr }}
+        </v-alert>
+      </div>
+
+    </v-container>
+
   </div>
 
 </template>
@@ -21,29 +46,48 @@ export default {
     return {
       leftArea: '',
       rightArea: '',
-      msg: ''
+      commonErr: null,
+      leftErr: null,
+      rightErr: null
     }
   },
   methods: {
     async compare() {
+      if(this.leftArea.length === 0 && this.rightArea.length === 0){
+        this.leftErr = 'Input Value'
+        this.rightErr = 'Input Value'
+        return
+      }
       const [leftJson, rightJson] = [JSON.parse(this.leftArea), JSON.parse(this.rightArea)]
+
+      if(this.getType(leftJson) != this.getType(rightJson)){
+        this.commonErr = `Can't Compare With Different Type`
+        return
+      }
+
       const [leftJsonStr, rightJsonStr] = [JSON.stringify(leftJson), JSON.stringify(rightJson)]
       const rightJsonCopy = JSON.parse(rightJsonStr);
       const id = this.hash(leftJsonStr + rightJsonStr);
-      try{
+      try {
         const {data} = await this.$axios.get(`api/isExist?id=${id}`)
         if (data) {
+          const diffJson = this.findDiffJson(leftJson, rightJsonCopy)
           await this.$router.push({
             name: 'after',
-            query: {id}
+            query: {id},
+            params:{
+              result:{
+                leftJson, rightJson, diffJson
+              }
+            }
           })
         } else {
           const diffJson = this.findDiffJson(leftJson, rightJsonCopy)
           this.delNullInDiffJson(diffJson)
           await this.save(id, {leftJson, rightJson, diffJson})
         }
-      }catch(e){
-        alert(e.response.statusText)
+      } catch (e) {
+        this.commonErr = e.response.statusText
       }
 
     },
@@ -81,18 +125,25 @@ export default {
       return Array.isArray(obj) && 'array' || typeof obj
     },
     setErrMsg() {
-      this.msg = null
-      if (this.leftArea.length == 0 || this.rightArea.length == 0) {
-        this.msg = 'input value'
-      } else {
-        try {
-          const leftJson = JSON.parse(this.leftArea)
-          const rightJson = JSON.parse(this.rightArea)
-          if (this.getType(leftJson) != this.getType(rightJson)) {
-            this.msg = 'diff_type'
-          }
-        } catch (e) {
-          this.msg = `can't parse JSON`
+      this.leftErr = null
+      this.rightErr = null
+
+      if (this.leftArea.length === 0) {
+        this.leftErr = 'Input Value'
+      }else{
+        try{
+          JSON.parse(this.leftArea)
+        }catch(e){
+          this.leftErr = `Can't Parse JSON`
+        }
+      }
+      if (this.rightArea.length === 0) {
+        this.rightErr = 'Input Value'
+      }else{
+        try{
+          JSON.parse(this.rightArea)
+        }catch(e){
+          this.rightErr = `Can't Parse JSON`
         }
       }
     },
@@ -154,33 +205,21 @@ export default {
 </script>
 
 <style scoped>
-#main {
-  display: flex;
-}
-
 a {
   text-decoration-line: underline;
   text-decoration-color: cornflowerblue;
-  cursor: pointer;
 }
 
 #main > div {
-  margin: auto auto;
-  width: 300px;
-}
-
-textArea {
-  margin: 2%;
   width: 100%;
-  height: 400px;
-  resize: vertical;
-  background-color: rgba(128, 128, 128, 0.3);
 }
 
-button {
-  font-size: 15px;
-  border-radius: 10px;
-  height: 40px;
+.visible {
+  visibility: visible;
+}
+
+.hidden {
+  visibility: hidden;
 }
 
 .msg {
