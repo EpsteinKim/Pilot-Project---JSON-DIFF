@@ -1,13 +1,14 @@
 <template>
   <div id="after">
     <v-container class="d-flex flex-column flex-sm-row justify-space-between py-0 mt-10">
-      <v-chip :style="mouse.show? 'visibility: visible': 'visibility: hidden'" class="test row--dense font-weight-black d-none d-sm-block" :class="paintColor(mouse.type)" ref="test">
-        {{mouse.type}}
-      </v-chip>
+
       <div class="order-0 overflow-auto col-auto col-sm-5 result">
-        <div :key="index" :class="[item.err,paintColor(item.err)]" class="row" @mousemove="addErrMouseEvent" v-for="(item, index) in leftResultArr">
-          {{ index }}. &nbsp; &nbsp;{{ item.str }}
-        </div>
+          <v-tooltip bottom :key="index" v-for="(item, index) in leftResultArr" close-delay="100" attach>
+            <template v-slot:activator="{on, err}">
+              <div :class="paintColor(item.err)" class="row" v-bind="err" v-on="item.err? on: null" >{{ index }}. &nbsp; &nbsp;{{ item.str }}</div>
+            </template>
+            <span>{{item.err}}</span>
+          </v-tooltip>
       </div>
 
       <div class="d-block d-sm-none" style="height:50px"/>
@@ -16,10 +17,13 @@
         <v-btn class="mb-5" elevation="3" @click="goBack" rounded>BACK</v-btn>
       </v-col>
 
-      <div class="order-1 order-sm-2 overflow-x-auto col-auto col-sm-5 result">
-        <div :key="index" :class="[item.err,paintColor(item.err)]" class="row" @mousemove="addErrMouseEvent" v-for="(item, index) in rightResultArr">
-          {{ index }}. &nbsp; &nbsp;{{ item.str }}
-        </div>
+      <div class="order-1 order-sm2 overflow-auto col-auto col-sm-5 result">
+        <v-tooltip bottom :key="index" v-for="(item, index) in rightResultArr" close-delay="100" attach>
+          <template v-slot:activator="{on, err}">
+            <div :class="paintColor(item.err)" class="row" v-bind="err" v-on="item.err? on: null" >{{ index }}. &nbsp; &nbsp;{{ item.str }}</div>
+          </template>
+          <span>{{item.err}}</span>
+        </v-tooltip>
       </div>
 
     </v-container>
@@ -35,24 +39,54 @@ export default {
     return {
       leftResultArr: Array,
       rightResultArr: Array,
-      mouse:{
-        X:0,
-        Y:0,
+      mouse: {
+        X: 0,
+        Y: 0,
         show: false,
         type: null
       }
     }
   },
   created() {
-    if(this.$route.params.hasOwnProperty('result')){
-
+    const afterStorage = this.$store.state.afterStorage
+    if (afterStorage.length) {
+      for (let obj of afterStorage) {
+        if (this.$route.query.id === obj.id) {
+          this.leftResultArr = JSON.parse(obj.result.leftResultArr)
+          this.rightResultArr = JSON.parse(obj.result.rightResultArr)
+          return
+        }
+      }
     }
-    this.makeResult(this.$route.query.id)
-    console.log(this.$route.params)
+
+    try {
+      if (this.$route.params.hasOwnProperty('result')) {
+        const {leftJson, rightJson, diffJson} = this.$route.params.result
+        this.leftResultArr = this.makeResultArr(leftJson, diffJson)
+        this.rightResultArr = this.makeResultArr(rightJson, diffJson)
+      } else { // uri를 입력하고 들어올때
+        this.makeResult(this.$route.query.id)
+      }
+    } catch (e) {
+      alert(e.response)
+    }
+    this.$store.commit('addAfter', {
+      id: this.$route.query.id,
+      result: {
+        leftResultArr: JSON.stringify(this.leftResultArr),
+        rightResultArr: JSON.stringify(this.rightResultArr)
+      }
+    })
+
   },
   methods: {
-    goBack() {
-      this.$router.push('/')
+    async goBack() {
+      await this.$router.push({
+        name: 'before',
+        params: {
+          id: this.$route.query.id
+        }
+      })
     },
     getKey(str) {
       return str.match('".+"(?=:)')[0].replace(/"/g, '')
@@ -61,18 +95,18 @@ export default {
       return Array.isArray(obj) && 'array' || typeof obj
     },
     paintColor(str) {
-      if(colorObj.hasOwnProperty(str)){
+      if (colorObj.hasOwnProperty(str)) {
         return colorObj[str]
       } else {
         return null
       }
     },
-    addErrMouseEvent(event){
+    addErrMouseEvent(event) {
       const errArr = ['diff_type', 'diff_val', 'not_key']
-      this.$refs.test.$el.style.left = (event.clientX + 10)+'px'
-      this.$refs.test.$el.style.top = event.clientY+'px'
-      for(let err of errArr){
-        if(event.target.classList.contains(err)){
+      this.$refs["move-chip"].$el.style.left = event.pageX + 'px'
+      this.$refs["move-chip"].$el.style.top = (event.pageY - 40) + 'px'
+      for (let err of errArr) {
+        if (event.target.classList.contains(err)) {
           this.mouse.show = true
           this.mouse.type = err
           return
@@ -82,9 +116,10 @@ export default {
     },
     async makeResult(id) {
       try {
-        const {data} = await this.$axios.get(`api/getData?id=${id}`)
-        if (data) {
-          const {rightJson, leftJson, diffJson} = await JSON.parse(data.result)
+        const {data} = await this.$axios.get(`api/results/${id}`)
+        console.log('hi')
+        if (data.id) {
+          const {rightJson, leftJson, diffJson} = JSON.parse(data.result)
           this.leftResultArr = this.makeResultArr(leftJson, diffJson)
           this.rightResultArr = this.makeResultArr(rightJson, diffJson)
         } else {
@@ -92,7 +127,7 @@ export default {
           this.goBack()
         }
       } catch (e) {
-        console.log(e)
+        alert(e.response)
       }
     },
     makeResultArr(json, diffJson) {
@@ -226,15 +261,15 @@ export default {
 </script>
 
 <style scoped>
-.test{
-  position:absolute;
-  top:0px;
-  left:0px;
+.test {
+  position: absolute;
+  top: 0px;
+  left: 0px;
   font-size: 14px;
 }
 
-.result{
-  height:unset;
+.result {
+  height: unset;
 }
 
 .row {
@@ -247,8 +282,10 @@ export default {
   cursor: pointer;
 }
 
-@media(max-width: 600px){
-  .result{height:300px}
+@media (max-width: 600px) {
+  .result {
+    height: 300px
+  }
 }
 
 </style>

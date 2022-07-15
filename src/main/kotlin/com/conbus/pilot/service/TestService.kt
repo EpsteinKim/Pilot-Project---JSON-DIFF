@@ -16,10 +16,6 @@ class TestService(
         testEntityRepository.save(TestEntity(testEntityDTO.id, testEntityDTO.result));
     }
 
-    fun isExist(id: String): Boolean {
-        return testEntityRepository.findById(id).isPresent
-    }
-
     fun getData(id: String): TestEntityDTO {
         val testEntity = testEntityRepository.findById(id);
         return if (testEntity.isPresent) TestEntityDTO(testEntity.get()) else TestEntityDTO()

@@ -19,8 +19,6 @@
 </template>
 
 <script>
-import colorObj from "@/assets/color";
-
 export default {
   name: "headerDiv"
 }

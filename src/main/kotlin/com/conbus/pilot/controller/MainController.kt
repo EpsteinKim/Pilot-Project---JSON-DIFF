@@ -21,18 +21,13 @@ class MainController(var testService: TestService){
         return data;
     }
 
-    @PostMapping("/save")
+    @PostMapping("/results/posts")
     public fun save(@RequestBody testEntityDTO: TestEntityDTO) {
         return testService.save(testEntityDTO);
     }
 
-    @GetMapping("/isExist")
-    public fun isExist(@RequestParam id: String): Boolean{
-        return testService.isExist(id)
-    }
-
-    @GetMapping("/getData")
-    public fun getData(@RequestParam id: String): TestEntityDTO{
+    @GetMapping("/results/{id}")
+    public fun getData(@PathVariable id: String): TestEntityDTO{
         return testService.getData(id);
     }
 }
